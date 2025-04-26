@@ -1,9 +1,0 @@
-import random
-
-def flip_coin(): 
-result = random.choice(['Heads', 'Tails']) 
-return result 
-
-# Simulate flipping the coin 10 times 
-for i in range(10): 
-print(f"Flip {i+1}: {flip_coin()}")
