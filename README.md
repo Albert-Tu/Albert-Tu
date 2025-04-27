@@ -114,15 +114,6 @@ STEAM_APP_ID=000000
 | Pause/Menu     | Esc              | Start         |
 
 All inputs are remappable via Unity Input System.
-
----
-
-## 🧪 Known Issues
-
-- 🌀 Weather updates may occasionally fail due to API rate limits.
-- 📐 UI may misalign on ultra-wide resolutions.
-- 📴 Steam achievements require online mode to sync.
-
 ---
 
 ## 🧱 Build & Deployment
