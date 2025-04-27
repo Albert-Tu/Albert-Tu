@@ -1,7 +1,3 @@
-Got it — here's a more **refined**, **professional**, and **visually clean** version of the `README.md` for your Unity game **_Neon Drift: Skybound Protocol_**. This version reads like a top-tier indie or AA game studio might use on GitHub or a Steam dev page — with better flow, tone, and structure.
-
----
-
 ```markdown
 # 🌌 Neon Drift: Skybound Protocol
 
