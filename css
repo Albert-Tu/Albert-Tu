@@ -1,8 +1,8 @@
 NeonDriftSkybound_CodeOnly/
 └── Code/
-    ├── Core/
-    ├── Racing/
-    ├── API/
-    ├── AI/
-    ├── UI/
-
+    ├── GameManager.cs
+    ├── InputManager.cs
+    ├── HoverVehicleController.cs
+    ├── AIHoverRacer.cs
+    ├── HUDManager.cs
+    ├── ...
