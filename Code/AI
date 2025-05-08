@@ -1,1 +1,23 @@
+using UnityEngine;
+
+namespace Code.AI
+{
+    public class SimpleAI : MonoBehaviour
+    {
+        public Transform[] waypoints;
+        private int currentIndex = 0;
+        public float speed = 5f;
+
+        void Update()
+        {
+            if (waypoints.Length == 0) return;
+
+            Transform target = waypoints[currentIndex];
+            transform.position = Vector3.MoveTowards(transform.position, target.position, speed * Time.deltaTime);
+
+            if (Vector3.Distance(transform.position, target.position) < 0.5f)
+                currentIndex = (currentIndex + 1) % waypoints.Length;
+        }
+    }
+}
 
