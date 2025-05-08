@@ -1,1 +1,24 @@
+using UnityEngine;
 
+namespace Code.Core
+{
+    public class GameManager : MonoBehaviour
+    {
+        public static GameManager Instance;
+
+        void Awake()
+        {
+            if (Instance == null)
+                Instance = this;
+            else
+                Destroy(gameObject);
+
+            DontDestroyOnLoad(gameObject);
+        }
+
+        void Start()
+        {
+            Debug.Log("Albert-Tu GameManager started!");
+        }
+    }
+}
