@@ -1,12 +1,12 @@
-NeonDriftSkybound_CodeOnly/
+Assets/
 └── Code/
     ├── Core/
     │   └── GameManager.cs
     ├── Racing/
-    │   └── HoverVehicleController.cs
+    │   └── HoverController.cs
     ├── AI/
-    │   └── AIHoverRacer.cs
-    ├── UI/
-    │   └── HUDManager.cs
+    │   └── SimpleAI.cs
     ├── API/
-    │   └── WeatherAPI.cs
+    │   └── WeatherManager.cs
+    ├── UI/
+    │   └── UIManager.cs
