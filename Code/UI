@@ -1,1 +1,17 @@
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace Code.UI
+{
+    public class UIManager : MonoBehaviour
+    {
+        public Text debugText;
+
+        void Start()
+        {
+            if (debugText != null)
+                debugText.text = "Albert-Tu UI Ready!";
+        }
+    }
+}
 
