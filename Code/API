@@ -1,1 +1,13 @@
+using UnityEngine;
+
+namespace Code.API
+{
+    public class WeatherManager : MonoBehaviour
+    {
+        void Start()
+        {
+            Debug.Log("Albert-Tu weather initialized: Clear skies ☀️");
+        }
+    }
+}
 
