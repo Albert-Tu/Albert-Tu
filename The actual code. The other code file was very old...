@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Drift: Infinite Highway</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Orbitron', monospace;
+            background: #000;
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        #gameContainer {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            background: linear-gradient(0deg, #0a0a2e 0%, #16213e 50%, #0f3460 100%);
+        }
+        
+        #gameCanvas {
+            display: block;
+            background: transparent;
+        }
+        
+        .hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #00ffff;
+            font-size: 18px;
+            font-weight: 700;
+            z-index: 100;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+        }
+        
+        .speed-meter {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            width: 150px;
+            height: 150px;
+            border: 3px solid #00ffff;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+        }
+        
+        .speed-value {
+            font-size: 24px;
+            font-weight: 900;
+            color: #00ffff;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+        }
+        
+        .speed-label {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+        }
+        
+        .controls-hint {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: #888;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        
+        .drift-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: 900;
+            color: #ff00ff;
+            text-shadow: 0 0 20px rgba(255, 0, 255, 0.8);
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+            z-index: 200;
+        }
+        
+        .distance-counter {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: #ffff00;
+            font-size: 18px;
+            font-weight: 700;
+            text-shadow: 0 0 10px rgba(255, 255, 0, 0.8);
+        }
+        
+        .boost-bar {
+            position: absolute;
+            bottom: 200px;
+            right: 30px;
+            width: 20px;
+            height: 100px;
+            border: 2px solid #ff00ff;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .boost-fill {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background: linear-gradient(0deg, #ff00ff, #ff66ff);
+            transition: height 0.1s;
+            box-shadow: 0 0 10px rgba(255, 0, 255, 0.8);
+        }
+        
+        .menu-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 1000;
+        }
+        
+        .menu-title {
+            font-size: 4rem;
+            font-weight: 900;
+            background: linear-gradient(45deg, #00ffff, #ff00ff, #ffff00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+            margin-bottom: 40px;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes glow {
+            from { filter: drop-shadow(0 0 20px rgba(0, 255, 255, 0.7)); }
+            to { filter: drop-shadow(0 0 30px rgba(255, 0, 255, 0.7)); }
+        }
+        
+        .menu-btn {
+            padding: 15px 30px;
+            background: rgba(0, 255, 255, 0.1);
+            border: 2px solid #00ffff;
+            color: #00ffff;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 18px;
+            font-weight: 700;
+            margin: 10px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+        
+        .menu-btn:hover {
+            background: rgba(0, 255, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 255, 255, 0.3);
+        }
+        
+        .stars {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: #fff;
+            border-radius: 50%;
+            animation: twinkle 3s infinite;
+        }
+        
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+        
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #00ffff;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: particle-fade 1s linear forwards;
+        }
+        
+        @keyframes particle-fade {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0); }
+        }
+
+        .boost-text {
+            position: absolute;
+            bottom: 165px;
+            right: 35px;
+            color: #ff00ff;
+            font-size: 12px;
+            font-weight: 700;
+            text-shadow: 0 0 8px rgba(255, 0, 255, 0.8);
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div class="stars" id="stars"></div>
+        <canvas id="gameCanvas"></canvas>
+        
+        <div class="hud">
+            <div>Time: <span id="gameTime">0:00</span></div>
+            <div>Best: <span id="bestDistance">0 km</span></div>
+        </div>
+        
+        <div class="distance-counter">
+            Distance: <span id="currentDistance">0</span> km
+        </div>
+        
+        <div class="speed-meter">
+            <div class="speed-value" id="speedValue">0</div>
+            <div class="speed-label">KM/H</div>
+        </div>
+        
+        <div class="boost-bar">
+            <div class="boost-fill" id="boostFill" style="height: 100%"></div>
+        </div>
+        <div class="boost-text">BOOST</div>
+        
+        <div class="controls-hint">
+            WASD / Arrow Keys: Move<br>
+            SHIFT: Drift Boost<br>
+            SPACE: Brake<br>
+            ESC: Pause
+        </div>
+        
+        <div class="drift-indicator" id="driftIndicator">DRIFT!</div>
+        
+        <div class="menu-overlay" id="menuOverlay">
+            <div class="menu-title">NEON DRIFT</div>
+            <div style="color: #888; margin-bottom: 40px; text-align: center;">
+                INFINITE HIGHWAY<br>
+                <em>Race through endless neon roads</em>
+            </div>
+            <button class="menu-btn" onclick="startGame()">START DRIVING</button>
+            <button class="menu-btn" onclick="showControls()">CONTROLS</button>
+        </div>
+    </div>
+    
+    <script>
+        // Game state
+        const game = {
+            canvas: null,
+            ctx: null,
+            width: 0,
+            height: 0,
+            running: false,
+            startTime: 0,
+            totalDistance: 0,
+            bestDistance: 0,
+            crashed: false,
+            camera: { x: 0, y: 0 }
+        };
+        
+        // Player ship
+        const player = {
+            x: 0,
+            y: 0,
+            vx: 0,
+            vy: 0,
+            angle: 0,
+            speed: 0,
+            maxSpeed: 15,
+            acceleration: 0.3,
+            friction: 0.96,
+            turnSpeed: 0.05,
+            drifting: false,
+            boostCharge: 100,
+            maxBoost: 100,
+            size: 15,
+            trail: []
+        };
+        
+        // Track data for infinite highway
+        const track = {
+            width: 400,
+            segments: [],
+            segmentLength: 200,
+            curves: [],
+            obstacles: [],
+            roadMarkings: []
+        };
+        
+        // Input handling
+        const keys = {};
+        
+        // Performance optimization
+        let lastTime = 0;
+        const targetFPS = 60;
+        const frameTime = 1000 / targetFPS;
+        
+        // Initialize game
+        function init() {
+            game.canvas = document.getElementById('gameCanvas');
+            game.ctx = game.canvas.getContext('2d');
+            
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            
+            // Input listeners
+            document.addEventListener('keydown', (e) => {
+                keys[e.code] = true;
+                if (e.code === 'Escape' && game.running) {
+                    pauseGame();
+                }
+                e.preventDefault();
+            });
+            
+            document.addEventListener('keyup', (e) => {
+                keys[e.code] = false;
+                e.preventDefault();
+            });
+            
+            generateInitialTrack();
+            createStars();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        function resizeCanvas() {
+            game.width = window.innerWidth;
+            game.height = window.innerHeight;
+            game.canvas.width = game.width;
+            game.canvas.height = game.height;
+        }
+        
+        function generateInitialTrack() {
+            track.segments = [];
+            track.curves = [];
+            track.obstacles = [];
+            track.roadMarkings = [];
+            
+            // Generate initial track segments
+            for (let i = 0; i < 100; i++) {
+                generateTrackSegment(i);
+            }
+        }
+        
+        function generateTrackSegment(index) {
+            const y = -index * track.segmentLength;
+            
+            // Create curves based on noise-like function
+            const curveIntensity = Math.sin(index * 0.1) * Math.cos(index * 0.05) * 150;
+            const curve = {
+                y: y,
+                x: curveIntensity,
+                width: track.width + Math.sin(index * 0.08) * 50
+            };
+            
+            track.curves.push(curve);
+            
+            // Add road markings
+            if (index % 3 === 0) {
+                track.roadMarkings.push({
+                    x: 0,
+                    y: y,
+                    width: 8,
+                    height: 40
+                });
+            }
+            
+            // Add obstacles occasionally
+            if (index > 10 && Math.random() < 0.15) {
+                const side = Math.random() < 0.5 ? -1 : 1;
+                track.obstacles.push({
+                    x: side * (track.width * 0.3 + Math.random() * 50),
+                    y: y - Math.random() * 100,
+                    size: 20 + Math.random() * 20,
+                    type: Math.random() < 0.5 ? 'cube' : 'spike'
+                });
+            }
+        }
+        
+        function createStars() {
+            const starsContainer = document.getElementById('stars');
+            starsContainer.innerHTML = '';
+            for (let i = 0; i < 50; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 3 + 's';
+                starsContainer.appendChild(star);
+            }
+        }
+        
+        function startGame() {
+            document.getElementById('menuOverlay').style.display = 'none';
+            game.running = true;
+            game.startTime = Date.now();
+            game.totalDistance = 0;
+            game.crashed = false;
+            game.camera = { x: 0, y: 0 };
+            
+            // Reset player
+            player.x = 0;
+            player.y = game.height * 0.8;
+            player.vx = 0;
+            player.vy = 0;
+            player.speed = 0;
+            player.angle = -Math.PI / 2;
+            player.boostCharge = 100;
+            player.trail = [];
+            player.drifting = false;
+            
+            // Regenerate track
+            generateInitialTrack();
+            
+            // Reset menu
+            document.querySelector('.menu-title').textContent = 'NEON DRIFT';
+            const menuBtns = document.querySelectorAll('.menu-btn');
+            menuBtns.forEach(btn => btn.style.display = 'inline-block');
+        }
+        
+        function showControls() {
+            const overlay = document.getElementById('menuOverlay');
+            const title = document.querySelector('.menu-title');
+            const buttons = document.querySelectorAll('.menu-btn');
+            
+            title.textContent = 'CONTROLS';
+            buttons.forEach(btn => btn.style.display = 'none');
+            
+            let controlsDiv = document.querySelector('.controls-info');
+            if (!controlsDiv) {
+                controlsDiv = document.createElement('div');
+                controlsDiv.className = 'controls-info';
+                controlsDiv.innerHTML = `
+                    <div style="color: #888; font-size: 18px; line-height: 2; margin-bottom: 30px;">
+                        <div><strong style="color: #00ffff;">WASD / Arrow Keys:</strong> Steer and accelerate</div>
+                        <div><strong style="color: #ff00ff;">SHIFT:</strong> Drift for boost energy</div>
+                        <div><strong style="color: #ffff00;">SPACE:</strong> Brake</div>
+                        <div><strong style="color: #00ff00;">ESC:</strong> Pause game</div>
+                        <br>
+                        <div style="color: #666;">Stay on the neon road and avoid obstacles!</div>
+                        <div style="color: #666;">Drift around corners to build boost energy!</div>
+                    </div>
+                `;
+                overlay.appendChild(controlsDiv);
+            }
+            controlsDiv.style.display = 'block';
+            
+            const backBtn = document.createElement('button');
+            backBtn.className = 'menu-btn';
+            backBtn.textContent = 'BACK';
+            backBtn.onclick = () => {
+                title.textContent = 'NEON DRIFT';
+                controlsDiv.style.display = 'none';
+                backBtn.remove();
+                buttons.forEach(btn => btn.style.display = 'inline-block');
+            };
+            overlay.appendChild(backBtn);
+        }
+        
+        function pauseGame() {
+            game.running = false;
+            document.getElementById('menuOverlay').style.display = 'flex';
+            document.querySelector('.menu-title').textContent = 'PAUSED';
+            const menuBtns = document.querySelectorAll('.menu-btn');
+            menuBtns.forEach(btn => btn.style.display = 'none');
+            
+            const resumeBtn = document.createElement('button');
+            resumeBtn.className = 'menu-btn';
+            resumeBtn.textContent = 'RESUME';
+            resumeBtn.onclick = () => {
+                document.getElementById('menuOverlay').style.display = 'none';
+                resumeBtn.remove();
+                game.running = true;
+            };
+            
+            document.getElementById('menuOverlay').appendChild(resumeBtn);
+        }
+        
+        function gameOver() {
+            game.running = false;
+            game.crashed = true;
+            
+            // Update best distance
+            if (game.totalDistance > game.bestDistance) {
+                game.bestDistance = game.totalDistance;
+            }
+            
+            document.getElementById('menuOverlay').style.display = 'flex';
+            document.querySelector('.menu-title').textContent = 'CRASHED!';
+            
+            // Clear existing content
+            const menuContainer = document.querySelector('.menu-overlay');
+            const existingBtns = menuContainer.querySelectorAll('.menu-btn');
+            const existingDivs = menuContainer.querySelectorAll('div:not(.menu-title)');
+            existingBtns.forEach(btn => btn.remove());
+            existingDivs.forEach(div => {
+                if (!div.classList.contains('menu-title')) div.remove();
+            });
+            
+            const statsDiv = document.createElement('div');
+            statsDiv.style.color = '#888';
+            statsDiv.style.marginBottom = '20px';
+            statsDiv.style.textAlign = 'center';
+            statsDiv.innerHTML = `Distance: ${game.totalDistance.toFixed(1)} km<br>`;
+            if (game.totalDistance >= game.bestDistance) {
+                statsDiv.innerHTML += '<span style="color: #00ffff;">NEW BEST DISTANCE!</span>';
+            }
+            
+            const restartBtn = document.createElement('button');
+            restartBtn.className = 'menu-btn';
+            restartBtn.textContent = 'TRY AGAIN';
+            restartBtn.onclick = startGame;
+            
+            menuContainer.appendChild(statsDiv);
+            menuContainer.appendChild(restartBtn);
+        }
+        
+        function update(deltaTime) {
+            if (!game.running || game.crashed) return;
+            
+            const dt = Math.min(deltaTime / 16.67, 2);
+            
+            // Handle input
+            let turning = 0;
+            let accelerating = false;
+            let braking = false;
+            let drifting = false;
+            
+            if (keys['KeyA'] || keys['ArrowLeft']) turning -= 1;
+            if (keys['KeyD'] || keys['ArrowRight']) turning += 1;
+            if (keys['KeyW'] || keys['ArrowUp']) accelerating = true;
+            if (keys['KeyS'] || keys['ArrowDown'] || keys['Space']) braking = true;
+            if (keys['ShiftLeft'] || keys['ShiftRight']) drifting = true;
+            
+            // Update player physics
+            if (accelerating) {
+                const boost = player.boostCharge > 0 && !drifting ? 1.4 : 1;
+                player.speed = Math.min(player.speed + player.acceleration * dt * boost, player.maxSpeed * boost);
+                if (boost > 1) {
+                    player.boostCharge = Math.max(player.boostCharge - 1.2 * dt, 0);
+                }
+            } else if (braking) {
+                player.speed = Math.max(player.speed - player.acceleration * 3 * dt, 0);
+            }
+            
+            // Drift mechanics
+            player.drifting = drifting && player.speed > 5 && Math.abs(turning) > 0;
+            
+            if (player.drifting) {
+                player.boostCharge = Math.min(player.boostCharge + 2 * dt, player.maxBoost);
+                document.getElementById('driftIndicator').style.opacity = '1';
+                
+                if (Math.random() < 0.15 * dt) {
+                    createDriftParticle();
+                }
+            } else {
+                document.getElementById('driftIndicator').style.opacity = '0';
+            }
+            
+            // Apply turning
+            if (turning !== 0 && player.speed > 1) {
+                const turnMultiplier = player.drifting ? 2.2 : 1.2;
+                const speedFactor = Math.min(player.speed / player.maxSpeed, 1);
+                player.angle += turning * player.turnSpeed * speedFactor * turnMultiplier * dt;
+            }
+            
+            // Update velocity
+            const targetVx = Math.cos(player.angle) * player.speed;
+            const targetVy = Math.sin(player.angle) * player.speed;
+            
+            if (player.drifting) {
+                const driftFactor = 0.12 * dt;
+                player.vx += (targetVx - player.vx) * driftFactor;
+                player.vy += (targetVy - player.vy) * driftFactor;
+            } else {
+                player.vx = targetVx;
+                player.vy = targetVy;
+            }
+            
+            // Apply friction
+            player.speed *= Math.pow(player.friction, dt);
+            
+            // Update position
+            player.x += player.vx * dt;
+            player.y += player.vy * dt;
+            
+            // Update camera to follow player
+            game.camera.x = player.x;
+            game.camera.y = player.y - game.height * 0.6;
+            
+            // Update distance traveled
+            if (player.speed > 0) {
+                game.totalDistance += player.speed * dt * 0.01;
+            }
+            
+            // Generate new track segments as needed
+            const furthestSegment = Math.max(...track.curves.map(c => -c.y));
+            const playerDistance = -player.y;
+            if (playerDistance + 2000 > furthestSegment) {
+                const newSegmentIndex = Math.floor(furthestSegment / track.segmentLength);
+                for (let i = 0; i < 10; i++) {
+                    generateTrackSegment(newSegmentIndex + i);
+                }
+            }
+            
+            // Check track boundaries and obstacles
+            checkCollisions();
+            
+            // Update trail
+            if (player.speed > 3) {
+                player.trail.push({ x: player.x, y: player.y, alpha: 1, time: Date.now() });
+            }
+            
+            const now = Date.now();
+            player.trail = player.trail.filter(point => now - point.time < 600);
+            player.trail.forEach((point) => {
+                point.alpha = Math.max(0, 1 - (now - point.time) / 600);
+            });
+            
+            updateUI();
+        }
+        
+        function checkCollisions() {
+            // Get current track position
+            const currentY = player.y;
+            const nearestCurve = track.curves.find(c => Math.abs(c.y - currentY) < track.segmentLength);
+            
+            if (nearestCurve) {
+                const trackCenterX = nearestCurve.x;
+                const trackWidth = nearestCurve.width;
+                const relativeX = player.x - trackCenterX;
+                
+                // Check track boundaries
+                if (Math.abs(relativeX) > trackWidth / 2) {
+                    gameOver();
+                    return;
+                }
+            }
+            
+            // Check obstacle collisions
+            for (const obstacle of track.obstacles) {
+                const dist = Math.sqrt(
+                    Math.pow(player.x - obstacle.x, 2) + 
+                    Math.pow(player.y - obstacle.y, 2)
+                );
+                
+                if (dist < player.size + obstacle.size / 2) {
+                    gameOver();
+                    return;
+                }
+            }
+        }
+        
+        function createDriftParticle() {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.position = 'fixed';
+            particle.style.left = (game.width / 2 + player.x - game.camera.x - 20 + Math.random() * 40) + 'px';
+            particle.style.top = (game.height / 2 + player.y - game.camera.y - 20 + Math.random() * 40) + 'px';
+            particle.style.background = '#ff00ff';
+            particle.style.boxShadow = '0 0 8px #ff00ff';
+            document.getElementById('gameContainer').appendChild(particle);
+            
+            setTimeout(() => {
+                if (particle.parentNode) {
+                    particle.remove();
+                }
+            }, 1000);
+        }
+        
+        function updateUI() {
+            const currentTime = game.running ? Date.now() - game.startTime : 0;
+            document.getElementById('gameTime').textContent = formatTime(currentTime);
+            document.getElementById('currentDistance').textContent = game.totalDistance.toFixed(1);
+            document.getElementById('speedValue').textContent = Math.round(player.speed * 10);
+            document.getElementById('boostFill').style.height = player.boostCharge + '%';
+            document.getElementById('bestDistance').textContent = game.bestDistance.toFixed(1) + ' km';
+        }
+        
+        function formatTime(ms) {
+            const totalSeconds = Math.floor(ms / 1000);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        function render() {
+            const ctx = game.ctx;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, game.width, game.height);
+            
+            // Save context for camera transform
+            ctx.save();
+            ctx.translate(game.width / 2 - game.camera.x, game.height / 2 - game.camera.y);
+            
+            // Draw track
+            drawTrack(ctx);
+            
+            // Draw obstacles
+            drawObstacles(ctx);
+            
+            // Draw player trail
+            drawPlayerTrail(ctx);
+            
+            // Draw player ship
+            drawPlayer(ctx);
+            
+            ctx.restore();
+            
+            // Draw speed lines effect
+            if (player.speed > 10) {
+                drawSpeedLines(ctx);
+            }
+        }
+        
+        function drawTrack(ctx) {
+            const viewDistance = 1500;
+            
+            // Draw road segments
+            for (let i = 0; i < track.curves.length - 1; i++) {
+                const current = track.curves[i];
+                const next = track.curves[i + 1];
+                
+                if (current.y > game.camera.y + viewDistance || current.y < game.camera.y - viewDistance) {
+                    continue;
+                }
+                
+                // Road surface
+                ctx.fillStyle = 'rgba(20, 20, 40, 0.9)';
+                ctx.beginPath();
+                ctx.moveTo(current.x - current.width / 2, current.y);
+                ctx.lineTo(current.x + current.width / 2, current.y);
+                ctx.lineTo(next.x + next.width / 2, next.y);
+                ctx.lineTo(next.x - next.width / 2, next.y);
+                ctx.closePath();
+                ctx.fill();
+                
+                // Road edges
+                ctx.strokeStyle = '#00ffff';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(current.x - current.width / 2, current.y);
+                ctx.lineTo(next.x - next.width / 2, next.y);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(current.x + current.width / 2, current.y);
+                ctx.lineTo(next.x + next.width / 2, next.y);
+                ctx.stroke();
+            }
+            
+            // Draw road markings
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            for (const marking of track.roadMarkings) {
+                if (marking.y > game.camera.y + viewDistance || marking.y < game.camera.y - viewDistance) {
+                    continue;
+                }
+                
+                // Find the curve at this position for proper placement
+                const nearestCurve = track.curves.find(c => Math.abs(c.y - marking.y) < track.segmentLength / 2);
+                if (nearestCurve) {
+                    ctx.fillRect(
+                        nearestCurve.x + marking.x - marking.width / 2, 
+                        marking.y - marking.height / 2,
+                        marking.width, 
+                        marking.height
+                    );
+                }
+            }
+        }
+        
+        function drawObstacles(ctx) {
+            const viewDistance = 1000;
+            
+            for (const obstacle of track.obstacles) {
+                if (obstacle.y > game.camera.y + viewDistance || obstacle.y < game.camera.y - viewDistance) {
+                    continue;
+                }
+                
+                ctx.save();
+                ctx.translate(obstacle.x, obstacle.y);
+                
+                if (obstacle.type === 'cube') {
+                    ctx.fillStyle = '#ff4444';
+                    ctx.strokeStyle = '#ff8888';
+                    ctx.lineWidth = 2;
+                    ctx.fillRect(-obstacle.size / 2, -obstacle.size / 2, obstacle.size, obstacle.size);
+                    ctx.strokeRect(-obstacle.size / 2, -obstacle.size / 2, obstacle.size, obstacle.size);
+                }
+                
+                ctx.restore();
+            }
+        }
+        
+        function drawPlayer
