@@ -1,1 +1,279 @@
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+import numpy as np
+import time
+import random
+from threading import Thread
+from collections import deque
 
+class SortingVisualizer:
+    def __init__(self, array_size=30):
+        self.array_size = array_size
+        self.original_array = list(range(1, array_size + 1))
+        random.shuffle(self.original_array)
+        
+        # Create copies for each algorithm
+        self.arrays = {
+            'Bubble Sort': self.original_array.copy(),
+            'Selection Sort': self.original_array.copy(),
+            'Insertion Sort': self.original_array.copy()
+        }
+        
+        # Track sorting progress and times
+        self.sorting_states = {name: [] for name in self.arrays.keys()}
+        self.start_times = {}
+        self.finish_times = {}
+        self.finished_order = []
+        
+        # Setup the plot
+        self.fig, self.axes = plt.subplots(1, 3, figsize=(15, 6))
+        self.fig.suptitle('Sorting Algorithm Race', fontsize=16, fontweight='bold')
+        
+        # Colors for visualization
+        self.colors = ['lightblue', 'lightgreen', 'lightcoral']
+        
+    def bubble_sort_step_generator(self, arr):
+        """Generator for bubble sort steps with detailed visualization"""
+        n = len(arr)
+        for i in range(n):
+            for j in range(0, n - i - 1):
+                # Show comparison step
+                yield arr.copy(), (j, j + 1)
+                if arr[j] > arr[j + 1]:
+                    # Show swap step
+                    arr[j], arr[j + 1] = arr[j + 1], arr[j]
+                    yield arr.copy(), (j, j + 1)
+            # Show completion of this pass
+            yield arr.copy(), (n - i - 1,)  # Highlight the sorted element
+        yield arr.copy(), None
+    
+    def selection_sort_step_generator(self, arr):
+        """Generator for selection sort steps with detailed visualization"""
+        n = len(arr)
+        for i in range(n):
+            min_idx = i
+            # Show current minimum
+            yield arr.copy(), (i,)
+            
+            for j in range(i + 1, n):
+                # Show comparison with current minimum
+                yield arr.copy(), (min_idx, j)
+                if arr[j] < arr[min_idx]:
+                    min_idx = j
+                    # Show new minimum found
+                    yield arr.copy(), (min_idx,)
+            
+            if min_idx != i:
+                # Show the swap
+                arr[i], arr[min_idx] = arr[min_idx], arr[i]
+                yield arr.copy(), (i, min_idx)
+            
+            # Show sorted portion
+            yield arr.copy(), tuple(range(i + 1))
+        yield arr.copy(), None
+    
+    def insertion_sort_step_generator(self, arr):
+        """Generator for insertion sort steps with detailed visualization"""
+        for i in range(1, len(arr)):
+            key = arr[i]
+            j = i - 1
+            
+            # Show element being inserted
+            yield arr.copy(), (i,)
+            
+            while j >= 0 and arr[j] > key:
+                # Show comparison
+                yield arr.copy(), (j, j + 1)
+                # Show shift
+                arr[j + 1] = arr[j]
+                yield arr.copy(), (j, j + 1)
+                j -= 1
+            
+            # Show insertion
+            arr[j + 1] = key
+            yield arr.copy(), (j + 1,)
+            
+            # Show sorted portion so far
+            yield arr.copy(), tuple(range(i + 1))
+        yield arr.copy(), None
+    
+    def is_sorted(self, arr):
+        """Check if array is sorted"""
+        return all(arr[i] <= arr[i + 1] for i in range(len(arr) - 1))
+    
+    def update_display(self):
+        """Update the visualization"""
+        for idx, (name, ax) in enumerate(zip(self.arrays.keys(), self.axes)):
+            ax.clear()
+            
+            if name in self.sorting_states and self.sorting_states[name]:
+                current_state, highlight = self.sorting_states[name][-1]
+                
+                # Create bars
+                bars = ax.bar(range(len(current_state)), current_state, 
+                             color=self.colors[idx], alpha=0.7)
+                
+                # Highlight compared elements
+                if highlight:
+                    for h_idx in highlight:
+                        if 0 <= h_idx < len(bars):
+                            bars[h_idx].set_color('red')
+                            bars[h_idx].set_alpha(1.0)
+                
+                # Check if finished
+                if self.is_sorted(current_state) and name not in self.finish_times:
+                    self.finish_times[name] = time.time()
+                    self.finished_order.append(name)
+                    ax.set_title(f'{name} - FINISHED! 🎉', fontweight='bold', color='green')
+                else:
+                    ax.set_title(f'{name}', fontweight='bold')
+            else:
+                # Initial state
+                bars = ax.bar(range(len(self.arrays[name])), self.arrays[name], 
+                             color=self.colors[idx], alpha=0.7)
+                ax.set_title(f'{name}', fontweight='bold')
+            
+            ax.set_ylim(0, self.array_size + 1)
+            ax.set_xlim(-0.5, self.array_size - 0.5)
+            ax.set_xlabel('Position')
+            ax.set_ylabel('Value')
+        
+        plt.tight_layout()
+        plt.pause(0.1)
+    
+    def run_algorithm(self, name, generator_func):
+        """Run a single sorting algorithm"""
+        self.start_times[name] = time.time()
+        arr = self.arrays[name].copy()
+        
+        for state in generator_func(arr):
+            if len(self.finished_order) < 3:  # Continue until all are finished
+                self.sorting_states[name].append(state)
+                time.sleep(0.1)  # Control speed
+            else:
+                break
+    
+    def create_podium(self):
+        """Create a podium showing the results"""
+        if len(self.finished_order) < 3:
+            return
+        
+        plt.figure(figsize=(10, 8))
+        
+        # Calculate times
+        times = []
+        for name in self.finished_order:
+            elapsed = self.finish_times[name] - self.start_times[name]
+            times.append(elapsed)
+        
+        # Podium positions (2nd place is tallest in middle)
+        positions = [1, 0, 2]  # 1st, 2nd, 3rd place positions
+        heights = [0.8, 1.0, 0.6]  # Heights for 2nd, 1st, 3rd
+        colors = ['gold', 'silver', '#CD7F32']  # Gold, Silver, Bronze
+        medals = ['🥇', '🥈', '🥉']
+        
+        fig, ax = plt.subplots(figsize=(12, 8))
+        
+        # Draw podium blocks
+        for i in range(3):
+            pos = positions[i]
+            rect = patches.Rectangle((pos, 0), 0.8, heights[i], 
+                                   facecolor=colors[i], alpha=0.7, 
+                                   edgecolor='black', linewidth=2)
+            ax.add_patch(rect)
+            
+            # Add algorithm name and time
+            algorithm_name = self.finished_order[i]
+            time_taken = f"{times[i]:.2f}s"
+            
+            # Medal and place
+            ax.text(pos + 0.4, heights[i] + 0.1, medals[i], 
+                   ha='center', va='bottom', fontsize=30)
+            
+            # Place number
+            place_text = ['1st', '2nd', '3rd'][i]
+            ax.text(pos + 0.4, heights[i] + 0.05, place_text, 
+                   ha='center', va='bottom', fontsize=14, fontweight='bold')
+            
+            # Algorithm name
+            ax.text(pos + 0.4, heights[i]/2, algorithm_name, 
+                   ha='center', va='center', fontsize=12, fontweight='bold',
+                   rotation=90 if len(algorithm_name) > 10 else 0)
+            
+            # Time
+            ax.text(pos + 0.4, -0.1, time_taken, 
+                   ha='center', va='top', fontsize=10)
+        
+        ax.set_xlim(-0.2, 3)
+        ax.set_ylim(-0.2, 1.3)
+        ax.set_aspect('equal')
+        ax.axis('off')
+        
+        # Title
+        plt.title('🏆 Sorting Algorithm Race Results 🏆', 
+                 fontsize=20, fontweight='bold', pad=20)
+        
+        # Add congratulations text
+        winner = self.finished_order[0]
+        plt.figtext(0.5, 0.1, f'Congratulations to {winner}!', 
+                   ha='center', fontsize=16, style='italic')
+        
+        plt.tight_layout()
+        plt.show()
+    
+    def start_race(self):
+        """Start the sorting race"""
+        print("🚀 Starting the Sorting Algorithm Race!")
+        print(f"Array size: {self.array_size}")
+        print(f"Initial array: {self.original_array[:10]}..." if self.array_size > 10 else f"Initial array: {self.original_array}")
+        print("\n" + "="*50)
+        
+        plt.ion()  # Turn on interactive mode
+        
+        # Create threads for each sorting algorithm
+        threads = []
+        algorithms = [
+            ('Bubble Sort', self.bubble_sort_step_generator),
+            ('Selection Sort', self.selection_sort_step_generator),
+            ('Insertion Sort', self.insertion_sort_step_generator)
+        ]
+        
+        # Start all algorithms
+        for name, func in algorithms:
+            thread = Thread(target=self.run_algorithm, args=(name, func))
+            threads.append(thread)
+            thread.start()
+        
+        # Update display while algorithms are running
+        while len(self.finished_order) < 3:
+            self.update_display()
+            time.sleep(0.05)  # Fast display updates for smooth animation
+        
+        # Final update
+        self.update_display()
+        
+        # Wait for all threads to complete
+        for thread in threads:
+            thread.join()
+        
+        plt.ioff()  # Turn off interactive mode
+        
+        # Show results
+        print("\n🏁 Race Finished!")
+        print("Results:")
+        for i, name in enumerate(self.finished_order):
+            elapsed = self.finish_times[name] - self.start_times[name]
+            medal = ['🥇', '🥈', '🥉'][i]
+            print(f"{medal} {i+1}. {name}: {elapsed:.2f} seconds")
+        
+        # Create podium
+        time.sleep(2)  # Pause before showing podium
+        self.create_podium()
+
+# Example usage
+if __name__ == "__main__":
+    # Pure visual experience - no text output
+    array_size = 25  # Default size for optimal visualization
+    
+    visualizer = SortingVisualizer(array_size=array_size)
+    visualizer.start_race()
